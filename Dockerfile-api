@@ -1,0 +1,18 @@
+FROM node:18-alpine as node_install
+WORKDIR /lh-admin
+COPY package*.json ./
+RUN npm install
+COPY . .
+
+FROM node_install as build
+RUN npm run build
+RUN chmod -R 777 dist/
+
+FROM node_install
+RUN apk add --no-cache nginx curl
+COPY default.conf /etc/nginx/http.d/
+COPY nginx.conf /etc/nginx/http.d/linear.health.conf
+COPY newnginx.conf /etc/nginx/nginx.conf
+COPY --from=build /lh-admin/dist/ ./dist/
+EXPOSE 80
+CMD ["/bin/sh", "-c", "nginx && npm run create_sqs && npm run start"]

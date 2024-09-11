@@ -1,0 +1,16 @@
+FROM node:18-alpine AS NODE_BUILD
+WORKDIR /lh-admin-frontend
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build 
+RUN npm run export
+
+FROM nginx:1.23.2-alpine
+WORKDIR /usr/share/nginx/lh-admin-frontend/
+COPY default.conf /etc/nginx/conf.d/
+COPY nginx.conf /etc/nginx/conf.d/linear.health.conf
+COPY --from=NODE_BUILD /lh-admin-frontend/out/ .
+RUN chmod -R 755 .
+RUN [ -s index.html ]
+EXPOSE 80
